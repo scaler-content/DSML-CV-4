@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Computer Vision 4 post read</title>
+<meta name="description" content="Computer Vision 4 post read: landmark recognition with AlexNet, VGGNet and transfer learning.">
+<style>
+:root{
+  --v950:#1e0b4b;--v900:#2e1065;--v800:#4c1d95;--v700:#6d28d9;--v600:#7c3aed;--v500:#8b5cf6;
+  --v400:#a78bfa;--v300:#c4b5fd;--v200:#ddd6fe;--v100:#ede9fe;--v50:#f5f3ff;
+  --ink:#1f1637;--muted:#5a4f78;--line:#e4dcfa;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:#fff;color:var(--ink);font:17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;line-height:1.2;color:var(--v900);margin:0}
+h2{font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0 0 .7rem}
+h3{font-size:1.35rem;margin:2.2rem 0 .5rem}
+h4{font-size:1.02rem;margin:1.2rem 0 .3rem;color:var(--v800)}
+p{margin:.75rem 0}
+p,ul,ol{max-width:70ch}
+li{margin:.3rem 0}
+a{color:var(--v700)}
+code{font:.88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--v100);color:var(--v800);padding:.1em .35em;border-radius:5px}
+:focus-visible{outline:3px solid var(--v500);outline-offset:2px;border-radius:4px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-999px;top:8px;background:var(--v900);color:#fff;padding:.5rem 1rem;z-index:100;border-radius:8px}
+.skip:focus{left:8px}
+
+/* header */
+.top{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .in{max-width:1040px;margin:0 auto;padding:.6rem 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font:700 1.05rem Georgia,serif;color:var(--v900);text-decoration:none;display:flex;align-items:center;gap:10px}
+.brand i{width:18px;height:18px;border-radius:4px;background:conic-gradient(var(--v700) 25%,var(--v300) 0 50%,var(--v500) 0 75%,var(--v900) 0);display:inline-block}
+#bar{height:3px;background:var(--v600);width:0;transition:width .1s}
+.btn{font:600 .9rem system-ui,sans-serif;background:var(--v700);color:#fff;border:2px solid var(--v700);border-radius:10px;padding:7px 14px;cursor:pointer}
+.btn:hover{background:var(--v800);border-color:var(--v800)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--v700)}
+.btn.ghost:hover{background:var(--v50)}
+.btn.sm{padding:4px 10px;font-size:.82rem}
+#toc{position:absolute;right:max(20px,calc(50% - 520px));top:100%;width:min(360px,calc(100vw - 40px));max-height:70vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 40px -12px rgba(46,16,101,.35);padding:10px}
+#toc ol{list-style:none;margin:0;padding:0;max-width:none}
+#toc a{display:flex;gap:10px;padding:7px 10px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:.95rem;line-height:1.35}
+#toc a b{color:var(--v600);font-variant-numeric:tabular-nums;min-width:1.6em}
+#toc a:hover,#toc a[aria-current=true]{background:var(--v100);color:var(--v900)}
+#toc a[aria-current=true]{font-weight:700}
+
+/* hero */
+.hero{color:#fff;padding:84px 20px 92px;background-color:var(--v900);
+  background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(135deg,var(--v950),var(--v700));
+  background-size:30px 30px,30px 30px,100% 100%}
+.hero .in{max-width:900px;margin:0 auto}
+.eyebrow{font:700 .78rem system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--v200)}
+.hero h1{color:#fff;font-size:clamp(2.3rem,6.5vw,4rem);margin:.4rem 0 1rem}
+.hero p{font-size:1.2rem;color:var(--v100);max-width:56ch}
+.hero .cta{margin-top:1.6rem;display:flex;gap:12px;flex-wrap:wrap}
+.hero .btn{background:#fff;color:var(--v800);border-color:#fff}
+.hero .btn.ghost{background:transparent;color:#fff;border-color:var(--v300)}
+
+/* sections */
+main section{padding:60px 20px;border-bottom:1px solid var(--line)}
+main section:nth-of-type(even){background:var(--v50)}
+main section>.in{max-width:940px;margin:0 auto}
+.kicker{display:inline-block;font:700 .78rem system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--v600);margin-bottom:.35rem}
+.callout{border-left:5px solid var(--v600);background:var(--v100);padding:12px 18px;border-radius:0 14px 14px 0;margin:1.2rem 0;max-width:70ch}
+.callout p{margin:.3rem 0}
+.note{font-size:.88rem;color:var(--muted)}
+.formula{font:italic 1.2rem Georgia,serif;text-align:center;background:var(--v900);color:#fff;border-radius:14px;padding:14px 18px;margin:16px 0;overflow-x:auto;max-width:none}
+.formula small{display:block;font:.8rem system-ui;color:var(--v200);font-style:normal;margin-top:4px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0}
+.card{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:#fff}
+.card h4{margin:0 0 .3rem;font-size:1.05rem;color:var(--v900)}
+.card p{margin:.3rem 0;font-size:.97rem}
+.card.dark{background:var(--v900);color:#fff;border-color:var(--v900)}
+.card.dark h4{color:#fff}
+.tag{display:inline-block;font:700 .72rem system-ui;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--v100);color:var(--v800)}
+
+/* widgets */
+.widget{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin:24px 0;box-shadow:0 8px 26px -14px rgba(76,29,149,.35)}
+.wtag{display:inline-block;font:700 .7rem system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--v700);background:var(--v100);padding:5px 10px;border-radius:999px;margin-bottom:8px}
+.wtitle{font:700 1.12rem/1.3 Georgia,serif;color:var(--v900);margin:0 0 4px}
+.wdesc{color:var(--muted);font-size:.93rem;margin:0 0 12px;max-width:none}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:8px 0 14px}
+.seg{display:inline-flex;flex-wrap:wrap}
+.seg button{font:600 .85rem system-ui,sans-serif;border:1.5px solid var(--v300);background:#fff;color:var(--v800);padding:6px 12px;cursor:pointer;margin-left:-1.5px}
+.seg button:first-child{border-radius:10px 0 0 10px;margin-left:0}
+.seg button:last-child{border-radius:0 10px 10px 0}
+.seg button:only-child{border-radius:10px}
+.seg button:hover{background:var(--v50)}
+.seg button[aria-pressed=true]{background:var(--v700);border-color:var(--v700);color:#fff;position:relative;z-index:1}
+select,input[type=number]{font:inherit;font-size:.9rem;padding:6px 8px;border:1.5px solid var(--v300);border-radius:8px;background:#fff;color:var(--v900)}
+input[type=number]{width:92px}
+input[type=range]{accent-color:var(--v600)}
+label.sel,label.chk,label.fld{font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+label.fld{flex-direction:column;align-items:flex-start;gap:3px;font-weight:600}
+.mat{display:grid;gap:3px;grid-template-columns:repeat(var(--c),minmax(0,1fr))}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;text-align:center;font:600 clamp(.6rem,1.7vw,.88rem)/1.1 ui-monospace,Menlo,monospace;border-radius:6px;background:var(--v50);color:var(--v900);border:1.5px solid var(--v200);padding:0;margin:0}
+button.cell{cursor:pointer}
+button.cell:hover{border-color:var(--v700)}
+.cell.win{outline:3px solid var(--v900);outline-offset:-2px;z-index:1}
+.cell.pad{background:repeating-linear-gradient(45deg,#fff,#fff 4px,var(--v100) 4px,var(--v100) 8px);color:var(--muted);border-style:dashed}
+.cell.neg{border:2px dashed var(--v900)}
+.cell.cur{outline:3px solid var(--v900);outline-offset:-2px}
+.cell.on{background:var(--v700);color:#fff;border-color:var(--v700)}
+.cell.ghost{border:2px dashed var(--v700)}
+.cell.sel{outline:3px solid var(--v900);outline-offset:-2px}
+.bars{display:grid;gap:6px}
+.brow{display:grid;grid-template-columns:minmax(78px,150px) 1fr 62px;gap:10px;align-items:center;font-size:.9rem}
+.bl{font-weight:600;color:var(--v900)}
+.bt{background:var(--v100);border-radius:6px;height:16px;overflow:hidden;display:block}
+.bf{display:block;height:100%;background:var(--v700);border-radius:6px;transition:width .25s}
+.bv{font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+.readout{margin-top:12px;padding:10px 14px;background:var(--v50);border:1px solid var(--line);border-radius:12px;font-size:.93rem;max-width:none}
+.readout b{color:var(--v900)}
+.fig{margin:14px 0}
+.fig img{max-width:100%;height:auto;border-radius:12px;border:1px solid var(--line);display:block;margin:0 auto}
+.fig figcaption{font-size:.85rem;color:var(--muted);text-align:center;margin-top:6px}
+.fb{display:none;padding:18px;border:2px dashed var(--v300);border-radius:12px;color:var(--muted);font-size:.9rem;text-align:center}
+.fig.broken .fb{display:block}
+.fig.broken img{display:none}
+.duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+
+/* tabs */
+.tabs{margin:18px 0}
+.tablist{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid var(--line);margin-bottom:14px}
+.tablist button{font:600 .92rem system-ui,sans-serif;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:9px 14px;cursor:pointer;margin-bottom:-2px;border-radius:8px 8px 0 0}
+.tablist button:hover{color:var(--v800);background:var(--v50)}
+.tablist button[aria-selected=true]{color:var(--v800);border-bottom-color:var(--v700);background:var(--v100)}
+[role=tabpanel]:focus-visible{outline-offset:6px}
+
+/* code + tables */
+details.code{border:1px solid var(--line);border-radius:12px;margin:14px 0;background:#fff;overflow:hidden}
+details.code summary{cursor:pointer;padding:10px 14px;font:600 .9rem system-ui;color:var(--v800);background:var(--v50)}
+details.code[open] summary{border-bottom:1px solid var(--line)}
+pre{margin:0;padding:14px 16px;overflow:auto;background:var(--v950);color:var(--v100);font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.tw{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--v100);color:var(--v900);font-weight:700}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+
+/* specific widgets */
+.pxwrap{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:20px;align-items:start}
+.pxgrid{gap:2px}
+.pxgrid .cell{border-radius:3px;border:0;font-size:clamp(.5rem,1.4vw,.68rem)}
+.vrow{display:flex;align-items:center;gap:8px;margin:5px 0}
+.vl{font-weight:800;color:var(--v800);width:44px;font-size:.82rem}
+.vcells{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px;flex:1}
+.vcells .cell{aspect-ratio:auto;height:34px;font-size:clamp(.55rem,1.5vw,.78rem)}
+.flat{display:grid;grid-template-columns:130px 1fr;gap:22px;align-items:start}
+.flat .mat{max-width:130px}
+.srow{display:grid;grid-template-columns:72px minmax(90px,1fr) 42px minmax(90px,1fr) 58px;gap:10px;align-items:center;margin:8px 0;font-size:.9rem}
+.srow input{width:100%}
+.zv{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right}
+.mx{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start}
+.layers{list-style:none;margin:0;padding:0;max-width:none;display:grid;gap:6px}
+.lay{width:100%;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.9fr) minmax(0,1fr);gap:8px;align-items:center;text-align:left;font:inherit;font-size:.86rem;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink)}
+.lay:hover{border-color:var(--v400)}
+.lay[aria-pressed=true]{border-color:var(--v700);background:var(--v50);box-shadow:inset 4px 0 0 var(--v700)}
+.lay .ln{font-weight:700;color:var(--v900)}
+.lay .ls{color:var(--muted);font-variant-numeric:tabular-nums}
+.lay .lp{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.lay .lb{grid-column:1/-1;height:6px;background:var(--v100);border-radius:4px;overflow:hidden}
+.lay .lb i{display:block;height:100%;background:var(--v600)}
+.ldetail{background:var(--v900);color:#fff;border-radius:14px;padding:16px 18px;position:sticky;top:90px}
+.ldetail h4{color:#fff;margin:0 0 6px}
+.ldetail p{margin:.4rem 0;font-size:.92rem;color:var(--v100)}
+.ldetail code{background:rgba(255,255,255,.14);color:#fff}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin:6px 0}
+.legend i{display:inline-block;width:26px;height:0;border-top:3px solid var(--v900);vertical-align:middle;margin-right:6px}
+.plot{touch-action:pan-y;outline-offset:2px}
+.plot svg{width:100%;height:auto;display:block}
+.cx{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,.7fr) minmax(0,.7fr) minmax(0,1fr);gap:16px;align-items:start}
+.pl{font:700 .78rem system-ui;color:var(--v800);margin-bottom:6px;letter-spacing:.02em}
+.sum{margin-top:8px;font-size:.95rem}
+.stepbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:14px}
+.stepbar input[type=range]{flex:1;min-width:140px}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#fff}
+.stat .k{font:700 .74rem system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font:700 1.7rem Georgia,serif;color:var(--v900)}
+.stat .s{font-size:.85rem;color:var(--muted)}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vs div{padding:8px 10px;border-radius:10px;background:var(--v50)}
+.vs div.win{background:var(--v900);color:#fff}
+.vs small{display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+.vs b{font:700 1.3rem Georgia,serif}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0;max-width:none}
+.flow span{background:#fff;border:1.5px solid var(--v300);color:var(--v900);padding:8px 12px;border-radius:10px;font:600 .9rem system-ui}
+.flow i{color:var(--v600);font-style:normal;font-weight:800}
+.cortex{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:stretch}
+.cortex .rl{font:700 .75rem system-ui;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center}
+.cortex button{font:inherit;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 8px;cursor:pointer;text-align:center;color:var(--ink);font-size:.84rem}
+.cortex button:hover{border-color:var(--v400)}
+.cortex button[aria-pressed=true]{background:var(--v900);color:#fff;border-color:var(--v900)}
+.cortex svg{width:40px;height:40px;display:block;margin:0 auto 4px}
+.cortex button b{display:block;font-size:.86rem}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;margin:8px 0;cursor:pointer;background:#fff}
+.opt:hover{border-color:var(--v400)}
+.opt input{margin-top:5px;accent-color:var(--v700)}
+.opt.ok{background:var(--v900);color:#fff;border-color:var(--v900)}
+.opt.bad{border:2px dashed var(--v900);background:var(--v50)}
+.opt .mk{margin-left:auto;font-weight:700;font-size:.82rem;white-space:nowrap}
+fieldset{border:0;padding:0;margin:0}
+legend{font-weight:700;color:var(--v900);padding:0;margin-bottom:6px}
+.qa{display:flex;gap:10px;margin-top:10px}
+footer{background:var(--v950);color:var(--v200);text-align:center;padding:36px 20px;font:700 1rem Georgia,serif}
+footer small{display:block;font:.8rem system-ui;opacity:.7;margin-top:4px}
+
+@media (max-width:820px){
+  .pxwrap,.flat,.mx{grid-template-columns:1fr}
+  .cx{grid-template-columns:1fr 1fr}
+  .cx .pn-in{grid-column:1/-1}
+  .ldetail{position:static}
+  .cortex{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .cortex .rl{grid-column:1/-1}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  main section{padding:44px 16px}
+  .srow{grid-template-columns:72px 1fr 42px}
+  .srow .bt{grid-column:2}
+  .srow .bv{grid-column:3}
+  .brow{grid-template-columns:84px 1fr 54px}
+}
+/* L2 additions */
+.maps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.maps .mat{gap:2px}
+.maps .cell{border-radius:3px;border:0;font-size:clamp(.5rem,1.4vw,.72rem)}
+.mapbtn{border:2px solid transparent;background:none;border-radius:10px;padding:4px;cursor:pointer;text-align:left;font:inherit}
+.mapbtn:hover{border-color:var(--v300)}
+.mapbtn[aria-pressed=true]{border-color:var(--v700);background:var(--v50)}
+.outrow{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.outrow .cell{width:34px;height:34px;aspect-ratio:auto;border-radius:5px;font-size:.7rem}
+.neurons{gap:3px;max-width:420px}
+.neurons .cell{border-radius:4px;border:0;font-size:0}
+.neurons .cell.on{background:var(--v700)}
+.neurons .cell.off{background:repeating-linear-gradient(45deg,#fff,#fff 3px,var(--v200) 3px,var(--v200) 6px);border:1.5px dashed var(--v300)}
+.meter{height:12px;background:var(--v100);border-radius:6px;overflow:hidden;margin:4px 0 10px}
+.meter i{display:block;height:100%;background:var(--v700);transition:width .2s}
+.meter.warn i{background:var(--v900)}
+.mrow{font-size:.9rem;color:var(--ink)}
+.mrow b{color:var(--v900)}
+.lsteps{list-style:none;counter-reset:s;padding:0;margin:12px 0;max-width:none;display:grid;gap:8px}
+.lsteps li{counter-increment:s;display:flex;gap:12px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;background:#fff;margin:0}
+.lsteps li::before{content:counter(s);flex:none;width:28px;height:28px;border-radius:50%;background:var(--v700);color:#fff;display:flex;align-items:center;justify-content:center;font:700 .85rem system-ui}
+.lsteps li.skip{border-style:dashed;background:var(--v50);color:var(--muted)}
+.lsteps li.skip::before{background:var(--v300)}
+.lsteps li .tg{margin-left:auto;font:700 .72rem system-ui;letter-spacing:.06em;text-transform:uppercase;color:var(--v800);background:var(--v100);padding:3px 8px;border-radius:999px;white-space:nowrap}
+.augg{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0}
+.augg figure{margin:0;text-align:center}
+.augg svg{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px;background:#fff}
+.augg figcaption{font:600 .78rem system-ui;color:var(--muted);margin-top:4px}
+.vols{width:100%;height:auto;display:block;margin:6px 0 10px}
+.vols g[role=button]{cursor:pointer}
+.vols g:focus-visible{outline:none}
+.vols g:focus-visible rect:first-of-type{stroke-width:4}
+.rbars{display:grid;gap:8px}
+.rb{display:grid;grid-template-columns:minmax(120px,210px) 1fr 64px;gap:10px;align-items:center;text-align:left;font:inherit;font-size:.9rem;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink);width:100%}
+.rb:hover{border-color:var(--v400)}
+.rb[aria-pressed=true]{border-color:var(--v700);background:var(--v50);box-shadow:inset 4px 0 0 var(--v700)}
+.rb .bl{font-weight:700}
+.rb .bt{height:18px;position:relative}
+.rb .zone{position:absolute;top:0;bottom:0;left:0;background:repeating-linear-gradient(45deg,var(--v200),var(--v200) 3px,#fff 3px,#fff 6px);opacity:.9}
+.rb .bf{position:relative}
+.mt td,.mt th{text-align:center;padding:6px 8px}
+.mt td:first-child,.mt th:first-child{text-align:left}
+.yes{font-weight:800;color:var(--v700)}
+.no{color:var(--v300)}
+pre.prompt{white-space:pre-wrap;word-break:break-word;border-radius:12px;font-size:13px}
+.hint{font-size:.85rem;color:var(--muted)}
+.cardlink{display:inline-block;margin-top:.4rem;font-weight:700;font-size:.9rem}
+@media (max-width:640px){
+  .maps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rb{grid-template-columns:90px 1fr 54px}
+}
+td.hl{background:var(--v100);font-weight:700}
+label.sel{flex-wrap:wrap;max-width:100%}
+label.sel select{max-width:100%;min-width:0}
+@media (max-width:640px){label.sel{width:100%}label.sel select{width:100%}}
+.yes{white-space:nowrap}
+@media (max-width:640px){.plot svg text{font-size:19px}.vols text{font-size:18px}}
+p code,li code,td code{overflow-wrap:anywhere}
+@media (max-width:640px){.widget .tw th,.widget .tw td{padding:6px 5px;font-size:.74rem}}
+.readout pre{overflow-x:auto;max-width:100%}
+.seg{max-width:100%;flex-wrap:wrap}
+.brow{grid-template-columns:minmax(70px,150px) minmax(0,1fr) auto}.brow .bl{overflow-wrap:anywhere}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="in">
+    <a class="brand" href="#top"><i aria-hidden="true"></i>Computer Vision 4 post read</a>
+    <button class="btn ghost sm" id="tocBtn" aria-expanded="false" aria-controls="toc">Contents</button>
+  </div>
+  <div id="bar" aria-hidden="true"></div>
+  <nav id="toc" aria-label="Contents" hidden><ol></ol></nav>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <div class="eyebrow">Deep Learning · Computer Vision</div>
+    <h1>Computer Vision 4 post read</h1>
+    <p>Last time we built a CNN completely from scratch and saw what convolution, ReLU, pooling, reshape and dense layers do, forward and backward. Now that we trust what <code>nn.Conv2d</code>, <code>nn.MaxPool2d</code>, <code>nn.Linear</code> and autograd do under the hood, we use PyTorch’s built-in layers and pretrained models to recognize famous landmarks with AlexNet, VGGNet and transfer learning.</p>
+    <div class="cta"><a class="btn" href="#prob">Start reading</a><a class="btn ghost" href="#tl">Jump to transfer learning</a></div>
+  </div>
+</div>
+
+<main id="main">
+
+<section id="prob" data-title="The landmark problem and the data">
+<div class="in">
+  <span class="kicker">01</span>
+  <h2>The landmark problem and the data</h2>
+  <p>Suppose you are a data scientist at a photo-mapping startup, asked to automate the categorization of famous landmarks. The dataset is images of <b>10 famous landmarks</b> downloaded from the web. We train a CNN on them; at inference the model is fed an image (like a visual-search app) and outputs the most probable landmark category.</p>
+  <div data-fig="prob"></div>
+  <div class="callout"><p><b>Visual (reverse image) search</b> lets you search with an image instead of text, and returns visually similar results or identifies what is in the photo.</p></div>
+
+  <h3>Choosing the metric</h3>
+  <p><b>Accuracy</b> = correct predictions / total samples. The test set is tiny (a few dozen images), so each test image moves accuracy by about 2 points: treat small differences with caution. We also use <b>top-k accuracy</b>, explained in the next section.</p>
+
+  <h3>Exploring the data first</h3>
+  <p>The folders are <code>New_landmark_images/{train,validation,test}/&lt;class_name&gt;/</code>. The classes are roughly <b>balanced</b>, with only a few dozen images per class in train, fewer in validation and a handful in test: a <b>small dataset</b>, the typical situation where transfer learning shines.</p>
+  <div class="widget" data-w="data"></div>
+  <div data-fig="samples"></div>
+  <details class="code"><summary>Code: imports, seed and device</summary><pre data-code="setup"></pre></details>
+  <details class="code"><summary>Code: download, count images per class, view samples</summary><pre data-code="explore"></pre></details>
+  <details class="code"><summary>Lecture figure: images per class</summary><div data-fig="counts"></div></details>
+
+  <h3>What preprocessing is needed?</h3>
+  <ol class="lsteps">
+    <li><span><b>Resize</b> all images to the same size, <b>224×224</b> (what VGG expects).</span></li>
+    <li><span><b>Rescale</b> pixels from 0–255 to 0–1 (<code>ToTensor</code>).</span></li>
+    <li><span><b>Standardize with the ImageNet mean and standard deviation.</b> The pretrained network was trained on images normalized this way; differently scaled inputs would hurt its pretrained features. We use the same normalization everywhere, also for the model trained from scratch, to keep the comparison fair.</span></li>
+  </ol>
+  <div class="widget" data-w="pre"></div>
+  <details class="code"><summary>Code: transforms and data loaders</summary><pre data-code="prep"></pre></details>
+  <div class="readout">One batch: torch.Size([32, 3, 224, 224])</div>
+  <div class="widget" data-w="quiz" data-q="q1"></div>
+</div>
+</section>
+
+<section id="alex" data-title="Why not from scratch? ImageNet and AlexNet">
+<div class="in">
+  <span class="kicker">02</span>
+  <h2>Why not from scratch? ImageNet and AlexNet</h2>
+  <p>There are two ways to classify these landmarks:</p>
+  <div class="vs">
+    <div><b>1. A CNN from scratch</b><p>How many conv layers? Which architecture? 3×3, 5×5 or 11×11 kernels? How to combine conv, pooling and FC layers? And can a small dataset give high accuracy? This needs a lot of experimentation and training time.</p></div>
+    <div class="win"><b>2. Transfer learning</b><p>Reuse a state-of-the-art model trained on a huge dataset. We compare both approaches using <b>VGGNet</b>, after first meeting its predecessor, <b>AlexNet</b>.</p></div>
+  </div>
+
+  <h3>AlexNet and ImageNet</h3>
+  <p>AlexNet won the <b>ImageNet competition (ILSVRC) in 2012</b> with a CNN, by a large margin: about <b>84.7% top-5 accuracy versus about 74%</b> for the runner-up. It is widely seen as the start of the deep-learning revolution in vision. CNNs were much older (LeCun et al., 1989); what was missing was <b>compute (GPUs) and large labelled datasets</b>.</p>
+  <p><b>ImageNet</b> is a database of over 14 million labelled images (over 21,000 categories) organized in a hierarchy. ILSVRC uses a 1000-class subset and became the benchmark for vision models.</p>
+  <div data-fig="imagenet"></div>
+
+  <h3>Top-k accuracy</h3>
+  <p>In many multiclass vision problems, top-k accuracy (top-3, top-5) is a better measure. A recommender system, for instance, shows the 3 or 5 best items rather than only the single best. In top-k accuracy we get a point if the right answer appears in the top k guesses. For images this helps because some classes differ only slightly (a pickup truck vs a minivan) and even human labels are not 100% correct.</p>
+  <div class="widget" data-w="topk"></div>
+  <details class="code"><summary>Lecture figures: top-k accuracy</summary><div data-fig="topk1,topk2"></div></details>
+
+  <h3>What was so new about AlexNet?</h3>
+  <div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
+    <div class="card"><span class="tag">1</span><h4>GPUs</h4><p>One of the first times a large CNN was trained successfully on GPUs. Thousands of cores allow parallel computing across many threads.</p></div>
+    <div class="card"><span class="tag">2</span><h4>ReLU</h4><p>Before 2012, tanh and sigmoid were common. ReLU gives better gradient propagation (fewer vanishing gradients than tanh) and is cheap, with no expensive exponential.</p></div>
+    <div class="card"><span class="tag">3</span><h4>Regularization</h4><p>Dropout and data augmentation (random 224×224 crops from 256×256 images, horizontal flips, colour PCA jitter) reduced overfitting.</p></div>
+    <div class="card"><span class="tag">4</span><h4>Pooling</h4><p>Reduces feature-map dimensions and the number of parameters, so the model trains faster.</p></div>
+    <div class="card"><span class="tag">5</span><h4>Depth</h4><p>More depth improved the model’s learning capacity.</p></div>
+  </div>
+
+  <div class="widget" data-w="quiz" data-q="q2"></div>
+  <div class="widget" data-w="params"></div>
+
+  <h3>The architecture</h3>
+  <div data-fig="alex,alexc"></div>
+  <p>AlexNet has <b>5 conv layers and 3 FC layers</b> and about <b>61 million parameters</b>.</p>
+  <div class="widget" data-w="quiz" data-q="q3"></div>
+
+  <h3>Shortcomings of AlexNet</h3>
+  <ul>
+    <li>It uses <b>large filters (11×11, 5×5)</b>, which have many parameters and are expensive.</li>
+    <li>It is relatively shallow. Deeper networks have more <b>expressive power</b> (several successive non-linearities), a larger <b>receptive field</b> built cheaply from small filters (3×3 layers interleaved with pooling can “see” a 128×128 region without a 128×128 filter), and learn a <b>hierarchy</b> of features (edges → textures → parts → objects) instead of memorizing in one wide layer.</li>
+  </ul>
+  <p><b>Can smaller filters give the same effect?</b> Yes: stack 3×3 filters. Stacking gives the same receptive field with fewer parameters, plus <b>extra non-linearities</b> (a ReLU after each conv).</p>
+  <div class="tw"><table><thead><tr><th>Option</th><th>Receptive field</th><th class="n">Weights</th></tr></thead><tbody>
+    <tr><td>one 5×5 filter</td><td>5×5</td><td class="n">25</td></tr><tr><td>two stacked 3×3 filters</td><td>5×5</td><td class="n"><b>18</b></td></tr>
+    <tr><td>one 7×7 filter</td><td>7×7</td><td class="n">49</td></tr><tr><td>three stacked 3×3 filters</td><td>7×7</td><td class="n"><b>27</b></td></tr></tbody></table></div>
+  <div class="widget" data-w="stack"></div>
+  <details class="code"><summary>Code: verify with real layers</summary><pre data-code="stack"></pre></details>
+  <div class="readout">one 5x5  : 102400<br>two 3x3  : 73728 (72% of the 5x5 filter)</div>
+</div>
+</section>
+
+<section id="vgg" data-title="VGGNet and the VGG16 build">
+<div class="in">
+  <span class="kicker">03</span>
+  <h2>VGGNet and the VGG16 build</h2>
+  <p>VGG (Oxford’s Visual Geometry Group) was <b>runner-up in classification and winner of localization at ILSVRC 2014</b>. It is similar in spirit to AlexNet but <b>much deeper and uniform</b>: only <b>3×3 convolutions</b> and 2×2 max-pooling, grouped in 5 blocks, followed by FC layers.</p>
+  <div class="cmp">
+    <div class="stat"><div class="k">VGG16</div><div class="v">16</div><div class="s">weight layers: 13 conv + 3 FC</div></div>
+    <div class="stat"><div class="k">VGG19</div><div class="v">19</div><div class="s">weight layers: 16 conv + 3 FC</div></div>
+  </div>
+  <div data-fig="vgg,vggc"></div>
+  <div class="widget" data-w="quiz" data-q="q4"></div>
+
+  <h3>Building VGG16 from scratch</h3>
+  <p>Every VGG block is <i>n</i> × (3×3 Conv + ReLU) followed by a 2×2 max-pool, which halves height and width. VGG16 uses (2, 2, 3, 3, 3) convolutions in its five blocks; VGG19 uses (2, 2, 4, 4, 4). Channels grow 64 → 128 → 256 → 512 → 512.</p>
+  <div class="callout"><p>To keep training fast, the three big FC layers (25088 → 4096 → 4096 → 1000) are replaced by a single <code>Linear(512·7·7, 10)</code> layer.</p></div>
+  <div class="widget" data-w="vgg"></div>
+  <details class="code"><summary>Code: vgg_block and VGGScratch</summary><pre data-code="vggblock"></pre></details>
+  <details class="code"><summary>Code: shapes and parameter count</summary><pre data-code="count"></pre></details>
+  <div class="readout"><pre style="margin:0;background:none;border:0;padding:0">after block 1: (1, 64, 112, 112)
+after block 2: (1, 128, 56, 56)
+after block 3: (1, 256, 28, 28)
+after block 4: (1, 512, 14, 14)
+after block 5: (1, 512, 7, 7)
+Total params: 14,965,578 | Trainable params: 14,965,578</pre></div>
+</div>
+</section>
+
+<section id="scratch" data-title="Training VGG16 from scratch">
+<div class="in">
+  <span class="kicker">04</span>
+  <h2>Training VGG16 from scratch</h2>
+  <h3>The training code, piece by piece</h3>
+  <ol class="lsteps">
+    <li><span><b>One training epoch:</b> forward → loss → backward → update, tracking loss and accuracy.</span></li>
+    <li><span><b>Evaluation:</b> no gradients, <code>model.eval()</code>; also returns top-k accuracy.</span></li>
+    <li><span><b>The <code>fit</code> loop</b> and a plotting helper.</span></li>
+  </ol>
+  <details class="code"><summary>Code: train_one_epoch, evaluate, fit, plot_history</summary><pre data-code="train"></pre></details>
+
+  <h3>Result</h3>
+  <p>We use SGD with momentum 0.9 and learning rate 0.01 (the recipe of the original VGG paper), for 5 epochs.</p>
+  <details class="code"><summary>Code: train from scratch and evaluate</summary><pre data-code="scratch"></pre></details>
+  <div class="widget" data-w="curves"></div>
+  <div data-fig="scratch"></div>
+  <div class="callout"><p><b>From scratch, the model is not doing well:</b> validation accuracy stays at 10.32% and test top-1 is 11.6% (random guessing: 10%), top-3 30.2%. We are asking about 15 million randomly initialized convolution parameters to learn useful features from only a few hundred images, and a deep plain network with no normalization is also hard to optimize.</p></div>
+  <p>Possible fixes: collect many more images per class (slow and expensive), or <b>reuse what a network already learned on a huge dataset: transfer learning.</b></p>
+</div>
+</section>
+
+<section id="tl" data-title="What is transfer learning?">
+<div class="in">
+  <span class="kicker">05</span>
+  <h2>What is transfer learning?</h2>
+  <p>Why did deep learning take off? Bigger, better datasets such as ImageNet; faster and cheaper GPUs; better algorithms (architectures, optimizers, training procedures); and <b>pretrained models</b> that took weeks to train but can be reused in minutes. The last point is probably one of the biggest reasons for the widespread adoption of deep learning: if every task took weeks, only a handful of well-funded researchers would work in the area. Transfer learning is the underappreciated hero.</p>
+  <div data-fig="tlreal"></div>
+  <div class="callout"><p>A model trained for one task is reused as the <b>starting point</b> for a second, related task. Early layers of a CNN learn <b>generic</b> features (edges, colours, textures); later layers become more <b>task-specific</b>. So we keep the generic layers and replace the task-specific ones: remove the final fully-connected layers, add a new head for our classes, then train.</p></div>
+  <div data-fig="tlidea"></div>
+
+  <h3>Two strategies</h3>
+  <div class="tw"><table><thead><tr><th></th><th>Feature extraction</th><th>Fine-tuning</th></tr></thead><tbody>
+    <tr><td><b>Pretrained backbone</b></td><td><b>frozen</b> (not updated)</td><td><b>some or all layers unfrozen</b>, trained with a small learning rate</td></tr>
+    <tr><td><b>Trained part</b></td><td>only the new head</td><td>new head + part of the backbone</td></tr>
+    <tr><td><b>Best when</b></td><td>very little data, task similar to ImageNet</td><td>more data and/or a task that differs from ImageNet</td></tr>
+    <tr><td><b>Risk</b></td><td>may underfit if tasks differ a lot</td><td>overfitting; a high learning rate can destroy pretrained features</td></tr></tbody></table></div>
+  <p>With only a few dozen images per class we start with <b>feature extraction</b>: much less training time and usually <b>much higher accuracy</b> than training from scratch on a small dataset.</p>
+  <div class="widget" data-w="freeze"></div>
+</div>
+</section>
+
+<section id="tlvgg" data-title="Transfer learning with VGG16">
+<div class="in">
+  <span class="kicker">06</span>
+  <h2>Transfer learning with VGG16</h2>
+  <h3>Step 1: load VGG16 pretrained on ImageNet</h3>
+  <p>The original head is <code>25088 → 4096 → 4096 → 1000</code> ImageNet classes, with ReLU and Dropout(0.5) between the layers.</p>
+  <h3>Step 2: freeze everything</h3>
+  <p>Setting <code>requires_grad = False</code> tells autograd not to compute gradients for these parameters, so the optimizer never changes them.</p>
+  <details class="code"><summary>Code: load the model and freeze its parameters</summary><pre data-code="load"></pre></details>
+  <div class="widget" data-w="quiz" data-q="q5"></div>
+  <h3>Step 3: replace the head</h3>
+  <p>We swap the 1000-class classifier for a single new <code>Linear</code> layer with 10 outputs. New layers have <code>requires_grad=True</code> by default, so <b>only this layer will be trained</b>: about 250 thousand parameters (25,088 × 10 weights + 10 biases) out of about 15 million. The convolutional backbone has 14.7M frozen parameters; the 120M-parameter original FC layers were removed.</p>
+  <details class="code"><summary>Code: new head and parameter count</summary><pre data-code="head"></pre></details>
+  <div class="readout">Total params: 14,965,578 | Trainable params: 250,890</div>
+  <h3>Step 4: train the new head</h3>
+  <p>The optimizer only receives the trainable parameters (Adam, learning rate 1e-3, 5 epochs). Training accuracy reaches 100% by epoch 4, and validation accuracy settles at 93.55%; compare the curves above.</p>
+  <details class="code"><summary>Code: optimizer and training</summary><pre data-code="opt"></pre></details>
+  <div data-fig="tlcurve"></div>
+  <h3>Step 5: evaluate on the test set</h3>
+  <details class="code"><summary>Code: test top-1 and top-3</summary><pre data-code="eval"></pre></details>
+  <div class="cmp">
+    <div class="stat"><div class="k">Transfer learning</div><div class="v">97.7%</div><div class="s">test top-1 · top-3: 100.0%</div></div>
+    <div class="stat"><div class="k">From scratch</div><div class="v">11.6%</div><div class="s">test top-1 · top-3: 30.2%</div></div>
+  </div>
+  <p>The pretrained convolutional layers typically reach a <b>much higher accuracy</b> with far less training. Exact numbers vary from run to run, and each test image is worth about 2 points.</p>
+  <h3>Step 6: look at the predictions</h3>
+  <p>15 random test images with the predicted class and confidence (blue = correct, red = wrong). Because the images are normalized, we first <i>undo</i> the normalization for display.</p>
+  <div data-fig="preds"></div>
+  <details class="code"><summary>Code: denormalize and show_predictions</summary><pre data-code="show"></pre></details>
+</div>
+</section>
+
+<section id="ft" data-title="Fine-tuning the last conv block">
+<div class="in">
+  <span class="kicker">07</span>
+  <h2>Fine-tuning the last conv block</h2>
+  <p>Feature extraction keeps the entire backbone frozen. <b>Fine-tuning</b> additionally unfreezes the <i>last</i> convolutional block (the most task-specific one) and trains it with a <b>much smaller learning rate</b> than the new head, so we adjust the pretrained features gently instead of destroying them.</p>
+  <div class="cmp">
+    <div class="stat"><div class="k">Backbone block 5 LR</div><div class="v">1e-5</div><div class="s">pretrained layers</div></div>
+    <div class="stat"><div class="k">New head LR</div><div class="v">1e-3</div><div class="s">trained from scratch</div></div>
+    <div class="stat"><div class="k">Trainable</div><div class="v">7.33M</div><div class="s">7,330,314 parameters</div></div>
+    <div class="stat"><div class="k">Test top-1 / top-3</div><div class="v">95.3%</div><div class="s">top-3: 100.0%</div></div>
+  </div>
+  <p>After 3 epochs: training accuracy 99.59%, validation accuracy 91.61%. Select <b>Fine-tuned last block</b> in the curves widget above, or the <b>Fine-tuning</b> preset in the freezing widget, to explore it. On a test set of 43 images the difference from 97.7% is a single image, so the two setups cannot be separated here.</p>
+  <details class="code"><summary>Code: fine-tuning</summary><pre data-code="ft"></pre></details>
+</div>
+</section>
+
+<section id="gap" data-title="VGG shortcomings, GAP and conclusion">
+<div class="in">
+  <span class="kicker">08</span>
+  <h2>VGG shortcomings, GAP and conclusion</h2>
+  <ul>
+    <li>VGG has about <b>138 to 144 million parameters</b>, about 500 MB to store. This is a major drawback.</li>
+    <li>Most parameters come from the last 3 FC layers (roughly 120 million); the convolutional part has around 15–20 million weights.</li>
+    <li>Conv layers matter more than FC layers, since they capture the features of the image.</li>
+  </ul>
+  <h3>Global Average Pooling</h3>
+  <p>A pooling layer applied over the <i>entire</i> feature map, using the average instead of the maximum. The feature map before VGG’s FC layers is 7 × 7 × 512; every 7×7 map is averaged to a single value, so <b>7×7×512 → GAP → 1×1×512</b>, which can feed straight into a dense layer. With GAP we can get rid of most of the FC-layer parameters and still <b>get good performance</b> in practice.</p>
+  <div data-fig="gap"></div>
+  <div class="widget" data-w="gap"></div>
+  <div class="widget" data-w="quiz" data-q="q6"></div>
+  <p>This gives rise to <b>GoogLeNet (Inception)</b>, which uses global average pooling at the end, and later <b>ResNet</b>, which solves the optimization problem of deep networks with skip connections.</p>
+
+  <h3>Conclusion</h3>
+  <div class="widget" data-w="models"></div>
+  <div class="callout"><p>Training a deep CNN such as VGG from scratch on a small dataset performs poorly. <b>Transfer learning</b> with a pretrained VGG16 (frozen convolutional layers + a new head) trains in minutes and performs far better.</p></div>
+  <div class="tw"><table><thead><tr><th>Setup</th><th>Trainable parameters</th><th class="n">Test top-1</th><th class="n">Test top-3</th></tr></thead><tbody>
+    <tr><td>VGG16 from scratch</td><td>14,965,578</td><td class="n">11.6%</td><td class="n">30.2%</td></tr>
+    <tr><td>Transfer learning (frozen backbone)</td><td>250,890</td><td class="n">97.7%</td><td class="n">100.0%</td></tr>
+    <tr><td>Fine-tuned last conv block</td><td>7,330,314</td><td class="n">95.3%</td><td class="n">100.0%</td></tr></tbody></table></div>
+</div>
+</section>
+
+</main>
+<footer>Computer Vision 4 post read<small>Interactive learning article</small></footer>
+
+<script>
+(function(){
+'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const fmt=n=>Number(n).toLocaleString('en-US');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+let uid=0;
+function h(html){const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild;}
+function mix(t){t=Math.max(0,Math.min(1,t));const a=[255,255,255],b=[109,40,217];return 'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')';}
+function ink(t){return t>0.5?'#fff':'#2e1065';}
+function shell(root,title,desc){root.classList.add('widget');root.innerHTML='<span class="wtag">Interactive</span><h4 class="wtitle">'+title+'</h4>'+(desc?'<p class="wdesc">'+desc+'</p>':'')+'<div class="wbody"></div>';return $('.wbody',root);}
+function seg(container,options,value,onChange,label){
+  const wrap=h('<div class="seg" role="group" aria-label="'+label+'"></div>');
+  function set(v){value=v;Array.from(wrap.children).forEach((b,i)=>b.setAttribute('aria-pressed',String(options[i].value===v)));}
+  options.forEach(o=>{const b=h('<button type="button" aria-pressed="false">'+o.label+'</button>');b.addEventListener('click',()=>{set(o.value);onChange(o.value);});wrap.appendChild(b);});
+  set(value);container.appendChild(wrap);return {set};
+}
+
+/* ---------- chart helper (inline SVG) ---------- */
+function niceMax(m){const st=m<=3?0.5:m<=6?1:2;return Math.ceil(m/st)*st;}
+function stepTicks(a,b,st){const t=[];for(let v=a;v<=b+1e-9;v+=st)t.push(+v.toFixed(6));return t;}
+function epochTicks(n){const st=n<=12?1:5,t=[1];for(let v=st;v<=n;v+=st)if(v>1)t.push(v);return t;}
+function chart(o){
+  const W=o.W||640,H=o.H||300,M=Object.assign({l:52,r:16,t:16,b:40},o.M||{});
+  const iw=W-M.l-M.r,ih=H-M.t-M.b,x0=o.x[0],x1=o.x[1],y0=o.y[0],y1=o.y[1];
+  const X=v=>M.l+(v-x0)/(x1-x0)*iw,Y=v=>M.t+ih-(v-y0)/(y1-y0)*ih;
+  let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label||'Chart')+'">';
+  (o.yt||[]).forEach(t=>{s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+Y(t).toFixed(1)+'" y2="'+Y(t).toFixed(1)+'" stroke="#e4dcfa"/><text x="'+(M.l-8)+'" y="'+(Y(t)+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="#5a4f78">'+(o.yf?o.yf(t):t)+'</text>';});
+  (o.xt||[]).forEach(t=>{s+='<text x="'+X(t).toFixed(1)+'" y="'+(H-M.b+17)+'" text-anchor="middle" font-size="11" fill="#5a4f78">'+(o.xf?o.xf(t):t)+'</text>';});
+  s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+(M.t+ih)+'" y2="'+(M.t+ih)+'" stroke="#a78bfa"/>';
+  if(o.xlabel)s+='<text x="'+(M.l+iw/2)+'" y="'+(H-5)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#2e1065">'+esc(o.xlabel)+'</text>';
+  if(o.ylabel)s+='<text transform="translate(13 '+(M.t+ih/2)+') rotate(-90)" text-anchor="middle" font-size="12" font-weight="700" fill="#2e1065">'+esc(o.ylabel)+'</text>';
+  (o.hl||[]).forEach(v=>{s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+Y(v.y).toFixed(1)+'" y2="'+Y(v.y).toFixed(1)+'" stroke="'+(v.c||'#a78bfa')+'" stroke-width="'+(v.w||1.5)+'"'+(v.d?' stroke-dasharray="'+v.d+'"':'')+'/>';});
+  (o.vl||[]).forEach(v=>{const x=X(v.x),right=x>W*0.7;s+='<line x1="'+x.toFixed(1)+'" x2="'+x.toFixed(1)+'" y1="'+M.t+'" y2="'+(M.t+ih)+'" stroke="'+(v.c||'#8b5cf6')+'" stroke-width="'+(v.w||1.5)+'" stroke-dasharray="'+(v.d||'4 4')+'"/>'+(v.label?'<text x="'+(x+(right?-4:4)).toFixed(1)+'" y="'+(M.t+11)+'" text-anchor="'+(right?'end':'start')+'" font-size="10.5" font-weight="700" fill="#4c1d95">'+esc(v.label)+'</text>':'');});
+  if(o.cur!=null){const x=X(o.cur).toFixed(1);s+='<line x1="'+x+'" x2="'+x+'" y1="'+M.t+'" y2="'+(M.t+ih)+'" stroke="#a78bfa" stroke-width="2"/>';}
+  (o.series||[]).forEach(se=>{
+    if(!se.pts.length)return;
+    s+='<path d="'+se.pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' ')+'" fill="none" stroke="'+se.c+'" stroke-width="'+(se.w||2.6)+'"'+(se.d?' stroke-dasharray="'+se.d+'"':'')+' stroke-linejoin="round"/>';
+    if(se.m)se.pts.forEach(p=>{const hi=o.cur!=null&&Math.abs(p[0]-o.cur)<1e-9,r=hi?6:3.4,x=X(p[0]),y=Y(p[1]);
+      if(se.m==='c')s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r+'" fill="'+se.c+'"/>';
+      else if(se.m==='s')s+='<rect x="'+(x-r).toFixed(1)+'" y="'+(y-r).toFixed(1)+'" width="'+2*r+'" height="'+2*r+'" fill="#fff" stroke="'+se.c+'" stroke-width="2.2"/>';
+      else s+='<path d="M'+x.toFixed(1)+' '+(y-r-1).toFixed(1)+' L'+(x+r+1).toFixed(1)+' '+(y+r).toFixed(1)+' L'+(x-r-1).toFixed(1)+' '+(y+r).toFixed(1)+' Z" fill="#fff" stroke="'+se.c+'" stroke-width="2.2"/>';});
+  });
+  (o.dots||[]).forEach(d=>{s+='<circle cx="'+X(d.x).toFixed(1)+'" cy="'+Y(d.y).toFixed(1)+'" r="6" fill="'+d.c+'" stroke="#fff" stroke-width="2"/>';});
+  return s+'</svg>';
+}
+function legendHtml(S){return S.map(se=>'<span><i style="border-color:'+se.c+';'+(se.d?'border-top-style:dashed':'')+'"></i>'+se.n+'</span>').join('');}
+function fmtLR(v){return v.toFixed(6).replace(/0+$/,'').replace(/\.$/,'');}
+
+/* ---------- figures ---------- */
+const CF='https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/';
+function fig(path,alt,cap,w){
+  return '<figure class="fig"><img src="'+CF+path+'" alt="'+esc(alt)+'" loading="lazy"'+(w?' style="max-width:'+w+'px"':'')+' onerror="this.closest(\'.fig\').classList.add(\'broken\')"><div class="fb" role="note">Image not available offline. '+esc(alt)+'</div>'+(cap?'<figcaption>'+cap+'</figcaption>':'')+'</figure>';
+}
+/* ---------- tabs ---------- */
+function mountTabs(root,items){
+  root.classList.add('tabs');
+  const id='t'+(++uid),list=h('<div class="tablist" role="tablist"></div>'),tabs=[],panels=[];
+  items.forEach((it,i)=>{
+    const b=h('<button type="button" role="tab" id="'+id+'-t'+i+'" aria-controls="'+id+'-p'+i+'">'+it.label+'</button>');
+    const p=h('<div role="tabpanel" id="'+id+'-p'+i+'" aria-labelledby="'+id+'-t'+i+'" tabindex="0"></div>');
+    p.innerHTML=it.html;tabs.push(b);panels.push(p);list.appendChild(b);
+  });
+  root.append(list,...panels);
+  function sel(i,focus){tabs.forEach((b,j)=>{const on=i===j;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;panels[j].hidden=!on;});if(focus)tabs[i].focus();}
+  tabs.forEach((b,i)=>{
+    b.addEventListener('click',()=>sel(i));
+    b.addEventListener('keydown',e=>{
+      if(e.key==='ArrowRight'){e.preventDefault();sel((i+1)%tabs.length,true);}
+      else if(e.key==='ArrowLeft'){e.preventDefault();sel((i-1+tabs.length)%tabs.length,true);}
+      else if(e.key==='Home'){e.preventDefault();sel(0,true);}
+      else if(e.key==='End'){e.preventDefault();sel(tabs.length-1,true);}
+    });
+  });
+  sel(0);
+}
+const code=k=>'<pre data-code="'+k+'"></pre>';
+function wQuiz(root,key){
+  const d=QUIZ[key],name='q'+(++uid),L='abcd';
+  root.classList.add('widget');
+  root.innerHTML='<span class="wtag">Check your understanding</span><fieldset><legend>'+d.q+'</legend>'+d.c.map((c,i)=>'<label class="opt"><input type="radio" name="'+name+'" value="'+i+'"><span>'+(d.letters?L[i]+') ':'')+c+'</span><span class="mk"></span></label>').join('')+'</fieldset><div class="qa"><button type="button" class="btn" disabled>Check answer</button><button type="button" class="btn ghost" hidden>Try again</button></div><div class="readout" aria-live="polite" hidden></div>';
+  const [chk,again]=$$('.btn',root),out=$('.readout',root),opts=$$('.opt',root),radios=$$('input',root);
+  radios.forEach(r=>r.addEventListener('change',()=>{chk.disabled=false;}));
+  chk.addEventListener('click',()=>{
+    const v=radios.findIndex(r=>r.checked);if(v<0)return;
+    opts.forEach((o,i)=>{o.classList.remove('ok','bad');$('.mk',o).textContent='';if(i===d.a){o.classList.add('ok');$('.mk',o).textContent='✓ Correct answer';}else if(i===v){o.classList.add('bad');$('.mk',o).textContent='✗ Your choice';}});
+    out.hidden=false;out.innerHTML='<b>'+(v===d.a?'Correct.':'Not quite.')+'</b> '+d.e;
+    chk.hidden=true;again.hidden=false;radios.forEach(r=>r.disabled=true);
+  });
+  again.addEventListener('click',()=>{
+    opts.forEach(o=>{o.classList.remove('ok','bad');$('.mk',o).textContent='';});
+    radios.forEach(r=>{r.checked=false;r.disabled=false;});out.hidden=true;chk.hidden=false;chk.disabled=true;again.hidden=true;
+  });
+}
+
+/* ---------- contents + progress ---------- */
+function wToc(){
+  const secs=$$('main section[data-title]'),ol=$('#toc ol'),btn=$('#tocBtn'),toc=$('#toc');
+  ol.innerHTML=secs.map((s,i)=>'<li><a href="#'+s.id+'"><b>'+String(i+1).padStart(2,'0')+'</b><span>'+s.dataset.title+'</span></a></li>').join('');
+  function close(){toc.hidden=true;btn.setAttribute('aria-expanded','false');}
+  btn.addEventListener('click',()=>{const o=toc.hidden;toc.hidden=!o;btn.setAttribute('aria-expanded',String(o));});
+  ol.addEventListener('click',e=>{if(e.target.closest('a'))close();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!toc.hidden){close();btn.focus();}});
+  document.addEventListener('click',e=>{if(!toc.hidden&&!e.target.closest('#toc')&&!e.target.closest('#tocBtn'))close();});
+  const links=$$('a',ol);
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){links.forEach(l=>l.removeAttribute('aria-current'));const l=$('a[href="#'+en.target.id+'"]',ol);if(l)l.setAttribute('aria-current','true');}});},{rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(s=>io.observe(s));
+  }
+  const bar=$('#bar');
+  function prog(){const d=document.documentElement,t=d.scrollHeight-d.clientHeight;bar.style.width=(t>0?Math.min(100,d.scrollTop/t*100):0)+'%';}
+  window.addEventListener('scroll',prog,{passive:true});prog();
+}
+/* ---------- figures ---------- */
+const F=(p,alt,cap,w)=>fig(p,alt,cap,w);
+const FIGS={
+  prob:F('249/207/original/1.png?1793084542','Ten famous landmarks used as the dataset','The 10 landmark categories',520),
+  counts:F('249/940/original/Screenshot_2026-10-28_120559.png?1793169383','Bar chart of training images per class','Training images per class',520),
+  samples:F('249/941/original/Screenshot_2026-10-28_120708.png?1793169440','One random training image per class, with its size','One random image per class (note the different sizes)',760),
+  imagenet:F('046/617/original/Screenshot_2023-09-06_at_11.34.09_AM.png?1693980427','ImageNet and the ILSVRC competition','ImageNet / ILSVRC',520),
+  topk1:F('046/615/original/Screenshot_2023-09-06_at_11.34.15_AM.png?1693980284','Top-k accuracy explained','Top-k accuracy',520),
+  topk2:F('046/616/original/Screenshot_2023-09-06_at_11.34.20_AM.png?1693980334','Top-k accuracy example','Top-k accuracy, example',520),
+  alex:F('249/208/original/2.png?1793084576','AlexNet architecture','AlexNet architecture',560),
+  alexc:F('249/211/original/3.png?1793084597','AlexNet layer-by-layer computation','AlexNet layers computation',560),
+  vgg:F('249/213/original/4.png?1793084629','VGG16 architecture','VGG16 architecture',560),
+  vggc:F('249/215/original/5.png?1793084651','VGG16 layer-by-layer computation','VGG16 layers computation',560),
+  scratch:F('249/943/original/Screenshot_2026-10-28_120914.png?1793169563','Loss and accuracy curves for VGG16 trained from scratch, flat near chance','VGG16 from scratch: curves barely move',560),
+  tlreal:F('249/217/original/6.png?1793084674','Transfer learning in real time','Transfer learning in real time',520),
+  tlidea:F('249/218/original/7.png?1793084693','Transfer learning: keep the generic layers, replace the head','Transfer learning: keep the generic layers, replace the task-specific ones',520),
+  tlcurve:F('249/944/original/Screenshot_2026-10-28_121013.png?1793169622','Loss and accuracy curves for VGG16 transfer learning','VGG16 transfer learning curves',560),
+  preds:F('249/945/original/Screenshot_2026-10-28_121108.png?1793169679','Fifteen random test images with predicted class and confidence, blue when correct','Predicted class and confidence (blue = correct, red = wrong)',640),
+  gap:F('046/614/original/Screenshot_2023-09-06_at_11.33.09_AM.png?1693980201','Global average pooling reducing 7x7x512 to 1x1x512','Global Average Pooling',520)
+};
+const QUIZ={
+  q1:{q:'Why do we normalize the inputs?',letters:true,c:['It makes the cost function faster to optimize','It makes the parameter initialization faster','It makes it easier to visualize the data','Normalization is another word for regularization: it helps to reduce variance'],a:0,e:'Inputs on a similar scale give a better-conditioned loss surface, so gradient descent converges faster. For a <i>pretrained</i> network there is a second reason: it expects the same normalization it was trained with.'},
+  q2:{q:'An input image of shape (227, 227, 3) is convolved with an (11, 11) kernel using 96 filters (stride 1, no padding), giving an output of shape (217, 217, 96). What is the total number of parameters?',letters:true,c:['<code>(11 * 11 * 3 + 1) * 96</code>','<code>11 * 11 * 3 * 96</code>','<code>96</code>','None of the above'],a:0,e:'Weights = 11 × 11 × 3 × 96 = 34,848 and biases = 96, so the total is <b>34,944</b>. The number of parameters does <i>not</i> depend on the image size. (The real AlexNet uses stride 4 in this layer, giving 55×55×96.)'},
+  q3:{q:'Which of the following options can be used to reduce overfitting in deep learning models?<br>1. Increase architectural complexity<br>2. Use data augmentation<br>3. Using dropouts<br>4. Add regularization',letters:true,c:['1,2,3','2,3,4','1,3,4','All of these'],a:1,e:'Increasing model complexity adds capacity and tends to make overfitting <i>worse</i>.'},
+  q4:{q:'Increasing the <b>number</b> of convolutional layers will necessarily increase the performance of a convolutional neural network.',letters:true,c:['TRUE','FALSE'],a:1,e:'More conv layers do not automatically help. Past a certain depth, plain stacked networks become hard to optimize (vanishing/exploding gradients, and the “degradation problem”: deeper plain networks can even get <i>higher training error</i>). This motivated architectures such as ResNet with skip connections. Depth helps only when paired with good initialization, normalization or skip connections.'},
+  q5:{q:'In PyTorch, how do you freeze a layer so it isn’t updated during training?',letters:true,c:['<code>layer.freeze()</code>','<code>layer.trainable = False</code>','<code>for p in layer.parameters(): p.requires_grad = True</code>','<code>for p in layer.parameters(): p.requires_grad = False</code>'],a:3,e:'<code>requires_grad = False</code> stops autograd from computing or accumulating gradients for those parameters.'},
+  q6:{q:'What is the total number of parameters in the 1st FC layer (7×7×512 → 4096) of VGGNet?',letters:true,c:['(7 * 7 * 512 + 1) * 4096','7 * 7 * 512 * 4096','4096','None of the above'],a:0,e:'(25,088 + 1) × 4,096 ≈ <b>102.8 million</b> parameters. This single layer is the bottleneck of VGGNet.'}
+};
+const TABS={};
+const P=fmt;
+const bar=(l,v,max,txt,cls)=>'<div class="brow"><span class="bl">'+l+'</span><span class="bt"><span class="bf" style="width:'+(v/max*100)+'%"></span></span><span class="bv">'+txt+'</span></div>';
+
+/* ---------- dataset ---------- */
+const CLASSES=['Niagara Falls','Golden Gate Bridge','Kantanagar Temple','Eiffel Tower','Washington Monument','Hanging Temple','Forth Bridge','Gateway of India','Machu Picchu','Great Wall of China'];
+const CNT={train:[66,70,88,64,83,70,82,87,55,72],validation:[16,16,16,15,16,15,15,15,16,15],test:[5,5,5,4,4,4,4,4,4,4]};
+function wData(root){
+  const b=shell(root,'The landmark dataset','Images per class in each split. The classes are roughly balanced and the dataset is small.');
+  let sp='train';const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');
+  b.append(ctrl,out,ro);
+  seg(ctrl,[{label:'Train',value:'train'},{label:'Validation',value:'validation'},{label:'Test',value:'test'}],sp,v=>{sp=v;draw();},'Split');
+  function draw(){const c=CNT[sp],m=Math.max(...CNT.train),tot=c.reduce((a,v)=>a+v,0);
+    out.innerHTML=c.map((v,i)=>bar((i+1)+'. '+CLASSES[i],v,m,v)).join('');
+    ro.innerHTML='<b>'+sp[0].toUpperCase()+sp.slice(1)+'</b>: <b>'+tot+'</b> images ('+Math.min(...c)+' to '+Math.max(...c)+' per class). All splits: 737 train, 155 validation, 43 test. Bars share one scale so the three splits can be compared.';}
+  draw();
+}
+
+/* ---------- normalization ---------- */
+function wPre(root){
+  const b=shell(root,'Standardizing a pixel with ImageNet statistics','Set a pixel’s red, green and blue values (0 to 255). It is rescaled to 0–1, then standardized per channel: (x − mean) / std.');
+  const MEAN=[0.485,0.456,0.406],STD=[0.229,0.224,0.225],NM=['R','G','B'],v=[200,120,60];
+  const ctrl=h('<div class="ctrl"></div>'),sw=h('<div class="flow"><span class="sw" style="width:64px;height:40px;padding:0"></span></div>'),tb=h('<div class="tw"><table><thead><tr><th>Channel</th><th class="n">Pixel</th><th class="n">÷ 255</th><th class="n">Mean</th><th class="n">Std</th><th class="n">Standardized</th></tr></thead><tbody></tbody></table></div>');
+  b.append(ctrl,sw,tb);
+  NM.forEach((n,i)=>{const l=h('<label class="fld">'+n+' <span class="zv"></span><input type="range" min="0" max="255" value="'+v[i]+'" aria-label="'+n+' value"></label>');ctrl.appendChild(l);$('input',l).addEventListener('input',e=>{v[i]=+e.target.value;draw();});});
+  function draw(){
+    $$('.zv',ctrl).forEach((z,i)=>z.textContent=v[i]);$('.sw',sw).style.background='rgb('+v.join(',')+')';$('.sw',sw).style.border='1px solid #a78bfa';
+    $('tbody',tb).innerHTML=v.map((p,i)=>'<tr><td>'+NM[i]+'</td><td class="n">'+p+'</td><td class="n">'+(p/255).toFixed(3)+'</td><td class="n">'+MEAN[i]+'</td><td class="n">'+STD[i]+'</td><td class="n"><b>'+((p/255-MEAN[i])/STD[i]).toFixed(3)+'</b></td></tr>').join('');
+  }
+  draw();
+}
+
+/* ---------- top-k ---------- */
+function wTopk(root){
+  const b=shell(root,'Top-k accuracy','Illustration only. The model ranks all 10 classes from most to least likely. Choose where the correct class lands in that ranking and how many guesses (k) we allow: we score a point if it is among the top k.');
+  let rank=2,k=3;const ctrl=h('<div class="ctrl"></div>'),lst=h('<div class="flow" style="gap:6px"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');
+  b.append(ctrl,lst,ro);
+  ctrl.appendChild(h('<span class="note">k =</span>'));seg(ctrl,[{label:'1',value:1},{label:'3',value:3},{label:'5',value:5}],k,v=>{k=v;draw();},'k');
+  const sl=h('<label class="fld">Rank of the correct class <span class="zv"></span><input type="range" min="1" max="10" value="2" aria-label="Rank of the correct class"></label>');ctrl.appendChild(sl);
+  $('input',sl).addEventListener('input',e=>{rank=+e.target.value;draw();});
+  function draw(){$('.zv',sl).textContent=rank;
+    lst.innerHTML=Array.from({length:10},(_,i)=>{const n=i+1,hit=n===rank,inK=n<=k;return '<span style="'+(hit?'background:var(--v900);color:#fff;border-color:var(--v900);':'')+(inK&&!hit?'background:var(--v100);':'')+(inK?'':'opacity:.55')+'">'+(hit?'✓ ':'')+'guess '+n+'</span>';}).join('');
+    ro.innerHTML='Correct class is guess <b>'+rank+'</b>; top-'+k+' covers guesses 1 to '+k+' → <b>'+(rank<=k?'counts as correct':'not counted')+'</b>. Top-1 is the usual accuracy'+(rank<=k&&rank>1?', and this image would be wrong at top-1 but right at top-'+k:'')+'.';}
+  draw();
+}
+
+/* ---------- parameter calculator ---------- */
+function wParams(root){
+  const b=shell(root,'Parameter calculator','Count the parameters of a convolutional layer or a fully connected layer. Try the lecture’s two quiz cases with the presets.');
+  let mode='conv';const ctrl=h('<div class="ctrl"></div>'),fl=h('<div class="ctrl"></div>'),out=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,fl,out);
+  const st={conv:{a:3,k:11,f:96},fc:{a:25088,f:4096}};
+  seg(ctrl,[{label:'Convolutional',value:'conv'},{label:'Fully connected',value:'fc'}],mode,v=>{mode=v;build();},'Layer type');
+  const pr=h('<div class="seg" role="group" aria-label="Presets"></div>');
+  [['Quiz 2: 11×11×3, 96 filters',()=>{mode='conv';st.conv={a:3,k:11,f:96};}],['Quiz 6: VGG FC1, 7×7×512 → 4096',()=>{mode='fc';st.fc={a:25088,f:4096};}]].forEach(([l,fn])=>{const bt=h('<button type="button" aria-pressed="false">'+l+'</button>');bt.addEventListener('click',()=>{fn();build();ctrl.querySelectorAll('.seg')[0].querySelectorAll('button').forEach((x,i)=>x.setAttribute('aria-pressed',String((i===0)===(mode==='conv'))));});pr.appendChild(bt);});
+  ctrl.appendChild(pr);
+  function build(){
+    const defs=mode==='conv'?[['a','Input channels'],['k','Kernel size k'],['f','Filters']]:[['a','Inputs'],['f','Outputs']];
+    fl.innerHTML='';defs.forEach(([key,l])=>{const lab=h('<label class="fld">'+l+'<input type="number" min="1" value="'+st[mode][key]+'"></label>');$('input',lab).addEventListener('input',e=>{st[mode][key]=Math.max(1,parseInt(e.target.value,10)||1);calc();});fl.appendChild(lab);});calc();}
+  function calc(){const s=st[mode];
+    if(mode==='conv'){const w=s.k*s.k*s.a*s.f;out.innerHTML='Weights = k × k × input channels × filters = '+s.k+' × '+s.k+' × '+s.a+' × '+s.f+' = <b>'+P(w)+'</b><br>Biases = one per filter = <b>'+s.f+'</b><br>Total = (k·k·C<sub>in</sub> + 1) × filters = <b>'+P(w+s.f)+'</b><br><span class="note">The count does not depend on the image’s height or width.</span>';}
+    else{const w=s.a*s.f;out.innerHTML='Weights = '+P(s.a)+' × '+P(s.f)+' = <b>'+P(w)+'</b><br>Biases = <b>'+P(s.f)+'</b><br>Total = (inputs + 1) × outputs = <b>'+P(w+s.f)+'</b>'+(s.a===25088&&s.f===4096?'<br>≈ <b>102.8 million</b> for this one layer.':'');}}
+  build();
+}
+
+/* ---------- stacked 3x3 filters ---------- */
+function wStack(root){
+  const b=shell(root,'One big filter or several 3×3 filters?','Stacked 3×3 filters see the same receptive field with fewer weights, and each one is followed by its own ReLU.');
+  let big=5,C=64;const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  seg(ctrl,[{label:'5×5 vs two 3×3',value:5},{label:'7×7 vs three 3×3',value:7}],big,v=>{big=v;draw();},'Compare');
+  const sl=h('<label class="fld">Channels C (input = output) <span class="zv"></span><input type="range" min="1" max="512" value="64" aria-label="Channels"></label>');ctrl.appendChild(sl);$('input',sl).addEventListener('input',e=>{C=+e.target.value;draw();});
+  function draw(){$('.zv',sl).textContent=C;const n=big===5?2:3,one=C*C*big*big,stk=n*C*C*9;
+    out.innerHTML=bar('One '+big+'×'+big,one,one,P(one))+bar(n+' stacked 3×3',stk,one,P(stk));
+    ro.innerHTML='Per input/output channel pair (biases ignored): '+big+'×'+big+' = <b>'+big*big+'</b> weights vs '+n+' × 9 = <b>'+n*9+'</b>. Both have a <b>'+big+'×'+big+'</b> receptive field.<br>With C = '+C+': <b>'+P(one)+'</b> vs <b>'+P(stk)+'</b> ('+Math.round(100*stk/one)+'% of the single filter).'+(C===64&&big===5?' This matches the lecture’s check: 102,400 vs 73,728 (72%).':'');}
+  draw();
+}
+
+/* ---------- VGG explorer ---------- */
+const CH=[64,128,256,512,512];
+function vggBlocks(cfg){let cin=3,sp=224;return cfg.map((n,i)=>{let p=0,c=cin;for(let j=0;j<n;j++){p+=c*CH[i]*9+CH[i];c=CH[i];}const r={n,cin,cout:CH[i],sp0:sp,sp1:sp/2,p};cin=CH[i];sp/=2;return r;});}
+function wVgg(root){
+  const b=shell(root,'Build VGG, block by block','Each block is n × (3×3 conv + ReLU) followed by a 2×2 max-pool that halves height and width. Choose the variant, then select a block. The head is the lecture’s single Linear(512·7·7, 10).');
+  let v='16',sel=0;const ctrl=h('<div class="ctrl"></div>');seg(ctrl,[{label:'VGG16 (2,2,3,3,3)',value:'16'},{label:'VGG19 (2,2,4,4,4)',value:'19'}],v,x=>{v=x;draw();},'Variant');
+  const mx=h('<div class="mx"><ul class="layers"></ul><div class="ldetail" aria-live="polite"></div></div>'),flow=h('<div class="flow" style="gap:6px"></div>');b.append(ctrl,flow,mx);
+  const ul=$('.layers',mx),dt=$('.ldetail',mx);
+  function draw(){const cfg=v==='16'?[2,2,3,3,3]:[2,2,4,4,4],B=vggBlocks(cfg),conv=B.reduce((a,x)=>a+x.p,0),head=512*49*10+10,mp=Math.max(...B.map(x=>x.p));sel=Math.min(sel,4);
+    flow.innerHTML='<span>3×224×224</span>'+B.map((x,i)=>'<i>→</i><span style="'+(i===sel?'background:var(--v900);color:#fff;border-color:var(--v900)':'')+'">'+x.cout+'×'+x.sp1+'×'+x.sp1+'</span>').join('')+'<i>→</i><span>Linear → 10</span>';
+    ul.innerHTML=B.map((x,i)=>'<li><button type="button" class="lay" data-i="'+i+'" aria-pressed="'+(i===sel)+'"><span class="ln">Block '+(i+1)+': '+x.n+' conv</span><span class="ls">'+x.cout+' × '+x.sp1+' × '+x.sp1+'</span><span class="lp">'+P(x.p)+'</span><span class="lb"><i style="width:'+(x.p/mp*100)+'%"></i></span></button></li>').join('');
+    const x=B[sel];dt.innerHTML='<h4>Block '+(sel+1)+'</h4><p>'+x.n+' × (3×3 conv, padding 1) + ReLU, then 2×2 max-pool.</p><p>Channels: <code>'+x.cin+' → '+x.cout+'</code></p><p>Size: <code>'+x.sp0+'×'+x.sp0+' → '+x.sp1+'×'+x.sp1+'</code></p><p>Parameters: <b>'+P(x.p)+'</b></p><p style="border-top:1px solid rgba(255,255,255,.2);padding-top:8px;margin-top:10px">Convolutional backbone: <b>'+P(conv)+'</b><br>+ head 25,088 × 10 + 10 = <b>'+P(head)+'</b><br>= total <b>'+P(conv+head)+'</b> (computed)</p>'+(v==='16'?'<p>Matches the lecture: 14,965,578 parameters.</p>':'');}
+  mx.addEventListener('click',e=>{const t=e.target.closest('[data-i]');if(!t)return;sel=+t.dataset.i;draw();$('[data-i="'+sel+'"]',ul).focus();});
+  draw();
+}
+
+/* ---------- freezing ---------- */
+function wFreeze(root){
+  const b=shell(root,'Which parts are trainable?','Click a block to freeze or unfreeze it. The presets are the three setups in this lecture (VGG16 with the new 10-class head).');
+  const B=vggBlocks([2,2,3,3,3]).map(x=>x.p),HEAD=250890,names=['Block 1','Block 2','Block 3','Block 4','Block 5','New head'];
+  const par=B.concat([HEAD]);let tr=[1,1,1,1,1,1],name='From scratch';
+  const PRE={'From scratch':[1,1,1,1,1,1],'Feature extraction':[0,0,0,0,0,1],'Fine-tuning':[0,0,0,0,1,1]};
+  const ctrl=h('<div class="ctrl"></div>'),chips=h('<div class="flow" style="gap:6px"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,chips,ro);
+  const sg=h('<div class="seg" role="group" aria-label="Presets"></div>');Object.keys(PRE).forEach(k=>{const bt=h('<button type="button" aria-pressed="false">'+k+'</button>');bt.addEventListener('click',()=>{tr=PRE[k].slice();name=k;draw();});sg.appendChild(bt);});ctrl.appendChild(sg);
+  function draw(){
+    $$('button',sg).forEach(bt=>bt.setAttribute('aria-pressed',String(bt.textContent===name)));
+    chips.innerHTML=names.map((n,i)=>'<button type="button" class="btn sm'+(tr[i]?'':' ghost')+'" data-i="'+i+'" aria-pressed="'+!!tr[i]+'">'+n+': '+(tr[i]?'trainable':'frozen')+'</button>').join('<i>→</i>');
+    const t=par.reduce((a,p,i)=>a+(tr[i]?p:0),0),T=par.reduce((a,p)=>a+p,0);
+    ro.innerHTML='Trainable: <b>'+P(t)+'</b> of '+P(T)+' ('+(100*t/T).toFixed(1)+'%). Frozen: '+P(T-t)+'.<br>'+({'From scratch':'Everything starts random and is trained: 14,965,578 trainable.','Feature extraction':'Only the new head learns (25,088 × 10 + 10 = 250,890). The optimizer receives just those parameters.','Fine-tuning':'The last conv block (<code>features[24:]</code>) is unfrozen as well, with learning rate 1e-5, while the head uses 1e-3: 7,330,314 trainable.'})[name]||'Custom selection.';
+  }
+  chips.addEventListener('click',e=>{const t=e.target.closest('[data-i]');if(!t)return;const i=+t.dataset.i;tr[i]=tr[i]?0:1;name='Custom';draw();const n=$('[data-i="'+i+'"]',chips);if(n)n.focus();});
+  name='Feature extraction';tr=PRE[name].slice();draw();
+}
+
+/* ---------- training curves ---------- */
+const RUNS={
+  scratch:{n:'VGG16 from scratch',c:'#2e1065',m:'c',d:'',loss:[2.3016,2.2990,2.2992,2.2980,2.2962],acc:[.1018,.1194,.1194,.1194,.1072],vloss:[2.3039,2.3078,2.3042,2.3060,2.3064],vacc:[.1032,.1032,.1032,.1032,.1032],t1:11.6,t3:30.2},
+  tl:{n:'Transfer learning (frozen backbone)',c:'#7c3aed',m:'s',d:'8 5',loss:[.7987,.0444,.0046,.0005,.0003],acc:[.7639,.9864,.9986,1,1],vloss:[.4416,.6147,.3948,.3527,.3548],vacc:[.8774,.8645,.9355,.9355,.9355],t1:97.7,t3:100},
+  ft:{n:'Fine-tuned last block',c:'#a78bfa',m:'t',d:'2 4',loss:[.8625,.0613,.0094],acc:[.7368,.9851,.9959],vloss:[.2945,.3495,.3110],vacc:[.9355,.9032,.9161],t1:95.3,t3:100}
+};
+function wCurves(root){
+  const b=shell(root,'Training curves: scratch vs transfer learning vs fine-tuning','Pick a metric and split. Hover or focus the chart and use ← → to read each epoch. Shapes of the markers differ so the runs are not told apart by colour alone.');
+  let met='acc',sp='val',idx=2;const ctrl=h('<div class="ctrl"></div>');
+  seg(ctrl,[{label:'Accuracy',value:'acc'},{label:'Loss',value:'loss'}],met,v=>{met=v;draw();},'Metric');seg(ctrl,[{label:'Validation',value:'val'},{label:'Training',value:'train'}],sp,v=>{sp=v;draw();},'Split');
+  const leg=h('<div class="legend"></div>'),plot=h('<div class="plot" tabindex="0" role="group" aria-label="Training chart. Use left and right arrow keys to change epoch."></div>'),ro=h('<div class="readout" aria-live="polite"></div>'),cmp=h('<div class="tw"><table><thead><tr><th>Run</th><th class="n">Test top-1</th><th class="n">Test top-3</th></tr></thead><tbody>'+Object.values(RUNS).map(r=>'<tr><td>'+r.n+'</td><td class="n">'+r.t1.toFixed(1)+'%</td><td class="n">'+r.t3.toFixed(1)+'%</td></tr>').join('')+'</tbody></table></div>');
+  b.append(ctrl,leg,plot,ro,cmp);b.appendChild(h('<p class="note">The test set has only 43 images, so each image moves accuracy by about 2 points; exact numbers vary from run to run. Random guessing is 10% top-1.</p>'));
+  const W=640,M={l:60,r:16,t:16,b:40};
+  const key=()=>(sp==='val'?'v':'')+met;
+  function draw(){const A=met==='acc',S=Object.values(RUNS).map(r=>({n:r.n,c:r.c,d:r.d,m:r.m,pts:r[key()].map((v,i)=>[i+1,v])}));
+    leg.innerHTML=legendHtml(S);
+    plot.innerHTML=chart({W,H:280,M,x:[1,5],y:A?[0,1]:[0,2.5],xt:[1,2,3,4,5],yt:A?[0,.25,.5,.75,1]:[0,.5,1,1.5,2,2.5],yf:t=>A?Math.round(t*100)+'%':t,xlabel:'Epoch',label:(sp==='val'?'Validation ':'Training ')+(A?'accuracy':'loss')+' per epoch for three runs',series:S,cur:idx+1});
+    ro.innerHTML='<b>Epoch '+(idx+1)+'</b>: '+Object.values(RUNS).map(r=>{const v=r[key()][idx];return r.n+' <b>'+(v==null?'(not run)':A?(v*100).toFixed(2)+'%':v.toFixed(4))+'</b>';}).join(' · ');}
+  function at(e){const r=plot.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W;idx=Math.max(0,Math.min(4,Math.round(1+(x-M.l)/(W-M.l-M.r)*4)-1));draw();}
+  plot.addEventListener('pointermove',at);plot.addEventListener('pointerdown',at);
+  plot.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){idx=Math.min(4,idx+1);draw();e.preventDefault();}else if(e.key==='ArrowLeft'){idx=Math.max(0,idx-1);draw();e.preventDefault();}});
+  draw();
+}
+
+/* ---------- GAP ---------- */
+function wGap(root){
+  const b=shell(root,'Where do the parameters live? Flatten vs Global Average Pooling','Feature map before the head: 7 × 7 × 512. Choose how it reaches the classifier.');
+  let o='orig';const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  seg(ctrl,[{label:'Original VGG head',value:'orig'},{label:'Flatten → Linear(25088, 10)',value:'flat'},{label:'GAP → Linear(512, 10)',value:'gap'}],o,v=>{o=v;draw();},'Head');
+  const H={orig:[['25088 → 4096',25088*4096+4096],['4096 → 4096',4096*4096+4096],['4096 → 1000',4096*1000+1000]],flat:[['25088 → 10',25088*10+10]],gap:[['512 → 10',512*10+10]]};
+  function draw(){const L=H[o],t=L.reduce((a,x)=>a+x[1],0);out.innerHTML=L.map(x=>bar(x[0],x[1],L[0][1]*(o==='orig'?1:1),P(x[1]))).join('');
+    ro.innerHTML=({orig:'7×7×512 → flatten (25,088) → three FC layers. The first alone is (25,088 + 1) × 4,096 ≈ <b>102.8 million</b>.',flat:'The lecture’s head: flatten, then one Linear layer.',gap:'Every 7×7 map is averaged to a single value: 7×7×512 → GAP → 1×1×512, which feeds straight into a dense layer.'})[o]+'<br>Head parameters (computed): <b>'+P(t)+'</b>'+(o==='orig'?' (the original FC layers are roughly 120 million, as the lecture says; conv backbone 14.7 million).':'')+'.';}
+  draw();
+}
+
+/* ---------- models table ---------- */
+function wModels(root){
+  const b=shell(root,'Pretrained models in torchvision','Single-crop ImageNet results from the torchvision documentation.');
+  let m='p';const D=[['AlexNet',61.1,56.5,79.1],['VGG16',138.4,71.6,90.4],['VGG19',143.7,72.4,90.9]];
+  const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>');b.append(ctrl,out);
+  seg(ctrl,[{label:'Parameters (M)',value:'p'},{label:'Top-1 accuracy (%)',value:'t1'},{label:'Top-5 accuracy (%)',value:'t5'}],m,v=>{m=v;draw();},'Metric');
+  b.appendChild(h('<p class="note">The 2012 competition result of about 84.7% top-5 came from an ensemble of several CNNs, which is why it is higher than the single model here.</p>'));
+  function draw(){const i={p:1,t1:2,t5:3}[m],mx=m==='p'?160:100;out.innerHTML=D.map(r=>bar(r[0],r[i],mx,r[i]+(m==='p'?'M':'%'))).join('');}
+  draw();
+}
+
+/* ---------- mount ---------- */
+function fillCode(){$$('[data-code]').forEach(el=>{el.textContent=CODE[el.dataset.code]||'';});}
+const W={data:wData,pre:wPre,topk:wTopk,params:wParams,stack:wStack,vgg:wVgg,freeze:wFreeze,curves:wCurves,gap:wGap,models:wModels};
+function init(){
+  $$('[data-fig]').forEach(el=>{el.innerHTML=el.dataset.fig.split(',').map(k=>FIGS[k]||'').join('');});
+  fillCode();
+  $$('[data-w]').forEach(el=>{const k=el.dataset.w;if(k==='quiz'){wQuiz(el,el.dataset.q);return;}if(W[k])W[k](el);});
+  wToc();
+}
+const CODE={"setup": "import os\nimport glob\nimport copy\nimport random\nimport numpy as np\nimport pandas as pd\nimport matplotlib.pyplot as plt\nfrom PIL import Image\n\nimport torch\nimport torch.nn as nn\nimport torch.optim as optim\nfrom torch.utils.data import DataLoader\nfrom torchvision import datasets, transforms, models\n\nimport warnings\nwarnings.filterwarnings(\"ignore\")\nplt.rcParams.update({\"font.size\": 12})\n\nSEED = 111\nrandom.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED)\n\ndevice = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\nprint(\"Using device:\", device)", "dl": "!gdown 11LQILlalZGi_skLIipnpTyh-At77B_j6\n\n!unzip -q New_landmark_images.zip", "explore": "!gdown 11LQILlalZGi_skLIipnpTyh-At77B_j6\n\n!unzip -q New_landmark_images.zip\n\nROOT = \"New_landmark_images\"\nclass_names = sorted(d for d in os.listdir(f\"{ROOT}/train\") if os.path.isdir(f\"{ROOT}/train/{d}\"))\n\ncounts = pd.DataFrame({\n    split: {c: len(os.listdir(f\"{ROOT}/{split}/{c}\")) for c in class_names}\n    for split in [\"train\", \"validation\", \"test\"]\n})\nprint(counts)\nprint(\"\\nTotals:\", counts.sum().to_dict())\ncounts[\"train\"].plot.bar(title=\"Training images per class\", figsize=(8, 3))\nplt.show()\n\nplt.figure(figsize=(20, 8))\nfor i, cls in enumerate(class_names):\n    path = random.choice(glob.glob(f\"{ROOT}/train/{cls}/*\"))\n    img = Image.open(path)\n    plt.subplot(2, 5, i + 1)\n    plt.imshow(img); plt.title(f\"{cls}\\n{img.size}\", fontsize=11); plt.axis(\"off\")\nplt.show()", "prep": "IMG_SIZE = (224, 224)\nIMAGENET_MEAN = [0.485, 0.456, 0.406]\nIMAGENET_STD  = [0.229, 0.224, 0.225]\nBATCH_SIZE = 32\n\npreprocess = transforms.Compose([\n    transforms.Resize(IMG_SIZE),\n    transforms.ToTensor(),                                   # PIL (H,W,C) 0..255  ->  tensor (C,H,W) 0..1\n    transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),       # (x - mean) / std per channel\n])\n\ntrain_dataset = datasets.ImageFolder(f\"{ROOT}/train\", transform=preprocess)\nval_dataset   = datasets.ImageFolder(f\"{ROOT}/validation\", transform=preprocess)\ntest_dataset  = datasets.ImageFolder(f\"{ROOT}/test\", transform=preprocess)\n\ntrain_ds = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)\nval_ds   = DataLoader(val_dataset, batch_size=BATCH_SIZE)\ntest_ds  = DataLoader(test_dataset, batch_size=BATCH_SIZE)\n\nprint(\"Classes:\", train_dataset.classes)\nimages, labels = next(iter(train_ds))\nprint(\"One batch:\", images.shape)", "stack": "# Verify with real layers: C = 64 input and output channels, biases ignored\nC = 64\none_5x5   = nn.Conv2d(C, C, 5, bias=False)\ntwo_3x3   = nn.Sequential(nn.Conv2d(C, C, 3, bias=False), nn.Conv2d(C, C, 3, bias=False))\ncount = lambda m: sum(p.numel() for p in m.parameters())\nprint(\"one 5x5  :\", count(one_5x5))\nprint(\"two 3x3  :\", count(two_3x3), f\"({100 * count(two_3x3) / count(one_5x5):.0f}% of the 5x5 filter)\")", "vggblock": "def vgg_block(in_ch, out_ch, n_convs):\n    layers = []\n    for i in range(n_convs):\n        layers += [nn.Conv2d(in_ch if i == 0 else out_ch, out_ch, kernel_size=3, padding=1),\n                   nn.ReLU(inplace=True)]\n    layers.append(nn.MaxPool2d(kernel_size=2, stride=2))\n    return nn.Sequential(*layers)\n\nclass VGGScratch(nn.Module):\n    def __init__(self, convs_per_block=(2, 2, 3, 3, 3), num_classes=10):   # (2,2,3,3,3) = VGG16, (2,2,4,4,4) = VGG19\n        super().__init__()\n        channels = [64, 128, 256, 512, 512]\n        blocks, in_ch = [], 3\n        for n_convs, out_ch in zip(convs_per_block, channels):\n            blocks.append(vgg_block(in_ch, out_ch, n_convs))\n            in_ch = out_ch\n        self.features = nn.Sequential(*blocks)\n        self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(512 * 7 * 7, num_classes))\n\n    def forward(self, x):\n        return self.classifier(self.features(x))", "count": "def count_params(model):\n    total = sum(p.numel() for p in model.parameters())\n    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)\n    print(f\"Total params: {total:,} | Trainable params: {trainable:,}\")\n\nscratch_model = VGGScratch().to(device)\n\nx = torch.zeros(1, 3, 224, 224).to(device)\nfor i, block in enumerate(scratch_model.features):\n    x = block(x)\n    print(f\"after block {i + 1}: {tuple(x.shape)}\")\ncount_params(scratch_model)", "train": "def train_one_epoch(model, loader, criterion, optimizer):\n    model.train()\n    total_loss, correct, total = 0.0, 0, 0\n    for images, labels in loader:\n        images, labels = images.to(device), labels.to(device)\n        optimizer.zero_grad()\n        outputs = model(images)\n        loss = criterion(outputs, labels)\n        loss.backward()\n        optimizer.step()\n\n        total_loss += loss.item() * images.size(0)\n        correct += (outputs.argmax(dim=1) == labels).sum().item()\n        total += images.size(0)\n    return total_loss / total, correct / total\n\n@torch.no_grad()\ndef evaluate(model, loader, criterion=None, topk=(1, 3)):\n    model.eval()\n    criterion = criterion or nn.CrossEntropyLoss()\n    total_loss, total = 0.0, 0\n    correct = {k: 0 for k in topk}\n    for images, labels in loader:\n        images, labels = images.to(device), labels.to(device)\n        outputs = model(images)\n        total_loss += criterion(outputs, labels).item() * images.size(0)\n        top_preds = outputs.topk(max(topk), dim=1).indices                  # (batch, max_k) best guesses\n        for k in topk:\n            correct[k] += (top_preds[:, :k] == labels[:, None]).any(dim=1).sum().item()\n        total += images.size(0)\n    return total_loss / total, {k: correct[k] / total for k in topk}\n\ndef fit(model, train_loader, val_loader, optimizer, epochs=5):\n    criterion = nn.CrossEntropyLoss()\n    history = {\"loss\": [], \"accuracy\": [], \"val_loss\": [], \"val_accuracy\": []}\n    for epoch in range(1, epochs + 1):\n        tr_loss, tr_acc = train_one_epoch(model, train_loader, criterion, optimizer)\n        va_loss, va_topk = evaluate(model, val_loader, criterion, topk=(1,))\n        va_acc = va_topk[1]\n        for k, v in zip(history, (tr_loss, tr_acc, va_loss, va_acc)):\n            history[k].append(v)\n        print(f\"Epoch {epoch}/{epochs} - loss: {tr_loss:.4f} - acc: {tr_acc:.4f} - val_loss: {va_loss:.4f} - val_acc: {va_acc:.4f}\")\n    return history\n\ndef plot_history(history, title=\"\"):\n    fig, ax = plt.subplots(1, 2, figsize=(11, 4))\n    for a, metric in zip(ax, [\"loss\", \"accuracy\"]):\n        a.plot(history[metric], \"--\", label=\"train\"); a.plot(history[\"val_\" + metric], label=\"val\")\n        a.set_xlabel(\"epoch\"); a.set_ylabel(metric); a.set_title(f\"{metric} {title}\"); a.legend()\n    plt.show()", "scratch": "torch.manual_seed(10)\nscratch_model = VGGScratch().to(device)\noptimizer = optim.SGD(scratch_model.parameters(), lr=0.01, momentum=0.9)\nhistory_scratch = fit(scratch_model, train_ds, val_ds, optimizer, epochs=5)\n\nplot_history(history_scratch, \"(VGG16 from scratch)\")\n_, test_topk = evaluate(scratch_model, test_ds)\nprint(f\"VGG16 from scratch -> test top-1: {100 * test_topk[1]:.1f}%, top-3: {100 * test_topk[3]:.1f}%  (random guessing: 10% top-1)\")", "load": "model_tl = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)\nprint(model_tl.classifier)     # original head: 25088 -> 4096 -> 4096 -> 1000 ImageNet classes\n\nfor param in model_tl.parameters():\n    param.requires_grad = False", "head": "model_tl.classifier = nn.Sequential(nn.Linear(512 * 7 * 7, 10))   # new, trainable head for our 10 landmarks\nmodel_tl = model_tl.to(device)\ncount_params(model_tl)", "opt": "optimizer = optim.Adam([p for p in model_tl.parameters() if p.requires_grad], lr=1e-3)\nhistory_tl = fit(model_tl, train_ds, val_ds, optimizer, epochs=5)\n\nplot_history(history_tl, \"(VGG16 transfer learning)\")", "eval": "_, tl_topk = evaluate(model_tl, test_ds)\nprint(f\"VGG16 transfer learning -> test top-1: {100 * tl_topk[1]:.1f}%, top-3: {100 * tl_topk[3]:.1f}%\")\nprint(f\"VGG16 from scratch      -> test top-1: {100 * test_topk[1]:.1f}%, top-3: {100 * test_topk[3]:.1f}%\")", "show": "def denormalize(img):                       # (C,H,W) normalized -> displayable image in [0,1]\n    mean = torch.tensor(IMAGENET_MEAN).view(3, 1, 1)\n    std = torch.tensor(IMAGENET_STD).view(3, 1, 1)\n    return (img.cpu() * std + mean).clamp(0, 1)\n\n@torch.no_grad()\ndef show_predictions(model, dataset, n=15, cols=5):\n    model.eval()\n    idxs = random.sample(range(len(dataset)), min(n, len(dataset)))\n    rows = (len(idxs) + cols - 1) // cols\n    plt.figure(figsize=(3.2 * cols, 3.4 * rows))\n    for i, idx in enumerate(idxs):\n        img, label = dataset[idx]\n        probs = torch.softmax(model(img[None].to(device)), dim=1)[0].cpu()\n        pred = probs.argmax().item()\n        plt.subplot(rows, cols, i + 1)\n        plt.imshow(denormalize(img).permute(1, 2, 0)); plt.xticks([]); plt.yticks([])\n        plt.xlabel(f\"{dataset.classes[pred]} {100 * probs[pred]:.0f}%\", color=\"blue\" if pred == label else \"red\")\n    plt.tight_layout(); plt.show()\n\nshow_predictions(model_tl, test_dataset)", "ft": "model_ft = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)\nfor param in model_ft.parameters():\n    param.requires_grad = False\nmodel_ft.classifier = nn.Sequential(nn.Linear(512 * 7 * 7, 10))      # new head (trainable)\nfor param in model_ft.features[24:].parameters():                    # last conv block (conv5_1 ... pool5)\n    param.requires_grad = True\nmodel_ft = model_ft.to(device)\ncount_params(model_ft)\n\noptimizer = optim.Adam([\n    {\"params\": model_ft.features[24:].parameters(), \"lr\": 1e-5},     # tiny LR for pretrained layers\n    {\"params\": model_ft.classifier.parameters(),    \"lr\": 1e-3},     # larger LR for the new head\n])\nhistory_ft = fit(model_ft, train_ds, val_ds, optimizer, epochs=3)\n_, ft_topk = evaluate(model_ft, test_ds)\nprint(f\"Fine-tuned -> test top-1: {100 * ft_topk[1]:.1f}%, top-3: {100 * ft_topk[3]:.1f}%\")"};
+init();
+
+})();
+</script>
+</body>
+</html>
